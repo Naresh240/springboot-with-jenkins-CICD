@@ -10,7 +10,7 @@ pipeline {
         stage("Checkout") {
             steps {
                 git branch: 'main', 
-                    url: 'https://github.com/Naresh240/springboot-with-jenkins-CICD.git'
+                    url: 'https://github.com/Naresh240/springboot-with-jenkins-shared-library.git'
             }
         }
         stage("Build_Artifact") {
@@ -83,6 +83,41 @@ pipeline {
                         error "* File: ${artifactPath}, could not be found"
                     }
                 }
+            }
+        }
+        stage("Docker_Image_Build"){
+            steps{
+                sh "docker build -t naresh240/springboohello:${BUILD_NUMBER} ."
+            }
+        }
+        stage("Docker_Image_Scan") {
+    steps {
+        script {
+            try {
+                echo "Starting Trivy scan for image: naresh240/springboohello:${BUILD_NUMBER}"
+                // Execute Trivy scan
+                sh """
+                    trivy -d image naresh240/springboohello:${BUILD_NUMBER}
+                """
+                echo "Trivy scan completed successfully for image: naresh240/springboohello:${BUILD_NUMBER}"
+            } catch (Exception e) {
+                echo "Trivy scan failed: ${e.message}"
+                error "Pipeline aborted due to Trivy scan failure."
+            }
+        }
+    }
+}
+        stage("Docker_Image_Push"){
+            steps{
+                withCredentials([usernamePassword(credentialsId: 'docker_credentials', passwordVariable: 'password', usernameVariable: 'username')]) {
+                    sh "docker login -u ${username} -p ${password}"
+                }
+                sh "docker push naresh240/springboohello:${BUILD_NUMBER}"
+            }
+        }
+        stage("Docker_Image_CleanUp") {
+            steps {
+                sh "docker rmi naresh240/springboohello:${BUILD_NUMBER}"
             }
         }
     }
