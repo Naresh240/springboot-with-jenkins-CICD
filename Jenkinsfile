@@ -3,14 +3,14 @@ pipeline {
     environment {
         NEXUS_VERSION = "nexus3"
         NEXUS_PROTOCOL = "http"
-        NEXUS_URL = "35.175.232.176:8081"
+        NEXUS_URL = "54.81.3.191:8081"
         NEXUS_CREDENTIAL_ID = "nexus-credentials"
     }
     stages {
         stage("Checkout") {
             steps {
                 git branch: 'main', 
-                    url: 'https://github.com/Naresh240/springboot-with-jenkins-shared-library.git'
+                    url: 'https://github.com/Naresh240/springboot-with-jenkins-CICD.git'
             }
         }
         stage("Build_Artifact") {
@@ -25,7 +25,8 @@ pipeline {
                         -Dsonar.projectKey=hellospringboot \
                         -Dsonar.projectName=hellospringboot \
                         -Dsonar.sourceEncoding=UTF-8 \
-                        -Dsonar.sources=src"
+                        -Dsonar.sources=src \
+                        -Dsonar.java.binaries=target/classes"
                 }
             }
         }
@@ -85,39 +86,42 @@ pipeline {
                 }
             }
         }
-        stage("Docker_Image_Build"){
-            steps{
-                sh "docker build -t naresh240/springboohello:${BUILD_NUMBER} ."
+        stage("Docker_Build_Image") {
+            steps {
+                sh "docker build -t springboothello:${BUILD_NUMBER} ."
             }
         }
         stage("Docker_Image_Scan") {
-    steps {
-        script {
-            try {
-                echo "Starting Trivy scan for image: naresh240/springboohello:${BUILD_NUMBER}"
-                // Execute Trivy scan
-                sh """
-                    trivy -d image naresh240/springboohello:${BUILD_NUMBER}
-                """
-                echo "Trivy scan completed successfully for image: naresh240/springboohello:${BUILD_NUMBER}"
-            } catch (Exception e) {
-                echo "Trivy scan failed: ${e.message}"
-                error "Pipeline aborted due to Trivy scan failure."
-            }
-        }
-    }
-}
-        stage("Docker_Image_Push"){
-            steps{
-                withCredentials([usernamePassword(credentialsId: 'docker_credentials', passwordVariable: 'password', usernameVariable: 'username')]) {
-                    sh "docker login -u ${username} -p ${password}"
-                }
-                sh "docker push naresh240/springboohello:${BUILD_NUMBER}"
-            }
-        }
-        stage("Docker_Image_CleanUp") {
             steps {
-                sh "docker rmi naresh240/springboohello:${BUILD_NUMBER}"
+                script {
+                    try {
+                        echo "Starting Trivy scan for image: springboothello:${BUILD_NUMBER}"
+                        // Execute Trivy scan
+                        sh """
+                            trivy -d image springboothello:${BUILD_NUMBER}
+                        """
+                        echo "Trivy scan completed successfully for image: springboothello:${BUILD_NUMBER}"
+                    } catch (Exception e) {
+                        echo "Trivy scan failed: ${e.message}"
+                        error "Pipeline aborted due to Trivy scan failure."
+                    }
+                }
+            }
+        }
+        stage("Docker_Image_Push") {
+            steps {
+                sh "docker tag springboothello:${BUILD_NUMBER} naresh240/springboothello:${BUILD_NUMBER}"
+                withCredentials([usernamePassword(credentialsId: 'docker_creds', passwordVariable: 'password', usernameVariable: 'username')]) {
+                    sh "docker push naresh240/springboothello:${BUILD_NUMBER}"
+                }
+            }
+        }
+        stage("Docker_Image_Cleanup") {
+            steps {
+                sh """
+                    docker rmi springboothello:${BUILD_NUMBER}
+                    docker rmi naresh240/springboothello:${BUILD_NUMBER}
+                """
             }
         }
     }
