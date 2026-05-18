@@ -1,4 +1,4 @@
-# springboot-with-jenkins-CICD -> testing webhook
+# springboot-with-jenkins-CICD
 
 # Pre-Requisites:
 - Java
