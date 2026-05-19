@@ -1,0 +1,28 @@
+pipeline {
+    agent any
+    stages {
+        stage("Checkout") {
+            steps {
+                // Use custom workspace for cloning
+                ws("${env.JENKINS_HOME}/workspace/external_ws") {
+                    git branch: 'main', 
+                        url: 'https://github.com/Naresh240/springboot-with-jenkins-CICD.git'
+                }
+            }
+        }
+        stage("Build_Artifact") {
+            agent {
+                docker {
+                    image 'maven:3.9.9-eclipse-temurin-21'
+                    args '-v $HOME/.m2:/root/.m2 -u root'
+                    // This forces Docker to use your custom directory immediately
+                    customWorkspace "${env.JENKINS_HOME}/workspace/external_ws"
+                }
+            }
+            steps {
+                // DO NOT use the ws() block here; it is already handled by customWorkspace
+                sh "mvn clean package"
+            }
+        }
+    }
+}
