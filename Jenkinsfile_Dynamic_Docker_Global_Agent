@@ -1,0 +1,21 @@
+pipeline {
+    agent {
+        docker {
+            image 'maven:3.9.9-eclipse-temurin-21' 
+            args '-v $HOME/.m2:/root/.m2 -u root' 
+        }
+    }
+    stages {
+        stage("Checkout") {
+            steps {
+                git branch: 'main', 
+                    url: 'https://github.com/Naresh240/springboot-with-jenkins-CICD.git'
+            }
+        }
+        stage("Build_Artifact") {
+            steps {
+                sh "mvn clean package"
+            }
+        }
+    }
+}
